@@ -12,7 +12,7 @@ Arduino IDE [ESP32 extension](https://github.com/espressif/arduino-esp32)
 
 [TinyGPS++](http://arduiniana.org/libraries/tinygpsplus/)
 
-[LMIC-Arduino](https://github.com/matthijskooijman/arduino-lmic) : Make sure to get the last version - *1.5.0+arduino-2* currently - because the arduino IDE library updater is getting confused by the versioning scheme of that library.
+[MCCI LMIC Arduino](https://github.com/mcci-catena/arduino-lmic) This is a hell to configure. You need to edit `~/Arduino/libraries/MCCI_LoRaWAN_LMIC_library/project_config/lmic_project_config.h` and define the “right” band, e.g. `CFG_eu868` (and comment out non-matching others)
 
 ## Instructions
 
