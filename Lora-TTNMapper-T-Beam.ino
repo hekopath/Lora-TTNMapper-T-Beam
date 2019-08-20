@@ -5,6 +5,7 @@
 // UPDATE the config.h file in the same folder WITH YOUR TTN KEYS AND ADDR.
 #include "config.h"
 #include "gps.h"
+#include "MPU9250.h"
 
 // #define DEBUG 1
 
@@ -12,15 +13,20 @@
 
 #ifdef DEBUG
   #define TIME_TO_SLEEP  30        /* Time ESP32 will go to sleep (in seconds) */
-  #define STATCOUNT 9
+  #define STATCOUNT 1
 #else
-  #define TIME_TO_SLEEP  90
-  #define STATCOUNT 9
+  #define TIME_TO_SLEEP  1800
+  #define STATCOUNT 2
 #endif
 
 // T-Beam specific hardware
 #define BUILTIN_LED 14
 #define BATTERY_VOLTAGE 35
+
+// MPU Accelerometer for wake on motion
+MPU9250 IMU(Wire,0x68);
+int status;
+#define IMU_WAKEUP_FORCE 100
 
 // OTAA (true) or ABP (false)
 #define USE_OTAA true
@@ -128,10 +134,7 @@ void onEvent (ev_t ev) {
       // os_setTimedCallback(&sendjob, os_getTime() + sec2osticks(TX_INTERVAL), do_send);
       // go into deep sleep for TX_interval
       RTC_seqnoUp = LMIC.seqnoUp;
-      gps.enableSleep();
-      // gps.setLowPower();
-      esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
-      esp_deep_sleep_start();
+      lowPower();
       break;
     case EV_LOST_TSYNC:
       Serial.println(F("EV_LOST_TSYNC"));
@@ -195,10 +198,7 @@ void do_send(osjob_t *j) {
         Serial.println("Time stationary: " + String(statCount * TIME_TO_SLEEP * uS_TO_S_FACTOR));
         ++statCount;
         RTC_seqnoUp = LMIC.seqnoUp;
-        gps.enableSleep();
-        // gps.setLowPower();
-        esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
-        esp_deep_sleep_start();        
+        lowPower();     
       }
     }
     else
@@ -241,15 +241,26 @@ void setup() {
     //Print the wakeup reason for ESP32
     print_wakeup_reason();    
   #endif
-  
-    //*************************
-    // ESP32 and LMIC
-    //*************************
+
+
   //Turn off WiFi and Bluetooth
   WiFi.mode(WIFI_OFF);
   btStop();
   gps.init();
   gps.softwareReset();
+
+  // start communication with IMU 
+  status = IMU.begin();
+  #ifdef DEBUG
+    if (status < 0) {
+      Serial.println("IMU initialization unsuccessful");
+      Serial.println("Check IMU wiring or try cycling power");
+      Serial.print("Status: ");
+      Serial.println(status);
+      while(1) {}
+    }
+  #endif  
+  IMU.enableWakeOnMotion(IMU_WAKEUP_FORCE,MPU9250::LP_ACCEL_ODR_15_63HZ);
 
   // Setup ADC to measure battery voltage
   adcAttachPin(BATTERY_VOLTAGE);
@@ -304,7 +315,16 @@ void setup() {
   do_send(&sendjob);
   pinMode(BUILTIN_LED, OUTPUT);
   digitalWrite(BUILTIN_LED, LOW);
-  
+}
+
+void lowPower() {
+  gps.enableSleep();
+  // gps.setLowPower();
+  // Set two wakeup sources: Timer for heartbeat, and interrupt for
+  // motion detection from IMU
+  esp_sleep_enable_ext0_wakeup(GPIO_NUM_4,1);
+  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+  esp_deep_sleep_start();
 }
 
 void loop() {

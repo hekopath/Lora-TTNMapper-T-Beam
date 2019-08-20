@@ -63,7 +63,7 @@ Let me know if more detailed instructions are needed.
 * ~~Save and reload the frame counter somewhere - GPS RTC data ? SPIFFS ? EEPROM ? - so I can check the "Frame Counter Checks" box as recommended on TTN~~.
 * Also save the GPS 'status' so that on next boot it gets a fix faster.
 * ~~Reduce the power needed ! That thing is a power hog currently, we need to make it sleep most of the time as possible~~.
-* Adapt the data send frequency based on current velocity : When not moving, an update per hour should be enough. ← this will be a future step including cheap accelerometers.
+* Adapt the data send frequency based on current velocity : When not moving, an update per hour should be enough. ← prototype with cheap (1€) IMU board; in this case MPU 9250
 
 Let me know if you think anything else would make sense for a TTN mapper node : Open an issue, I will consider it.
 
