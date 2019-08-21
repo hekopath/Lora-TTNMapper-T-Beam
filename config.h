@@ -1,6 +1,28 @@
 #ifndef LORA_TTNMAPPER_TBEAM_CONFIG_INCLUDED
 #define LORA_TTNMAPPER_TBEAM_CONFIG_INCLUDED
 
+// *****************************************
+// DEBUG
+// Define this Macro to increase verbosity and update interval
+
+// #define DEBUG 1
+
+// *****************************************
+
+
+// *****************************************
+// HARDWARE SPECIFICS
+
+#define BUILTIN_LED 14
+#define BATTERY_VOLTAGE 35
+#define HAS_IMU MPU9250
+
+// *****************************************
+// OTHER PARAMETERS
+
+#define DISTANCE_MOVED 20
+
+// *********************************************
 // UPDATE WITH YOUR TTN KEYS AND ADDR (ABP METHOD).
 static PROGMEM u1_t NWKSKEY[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }; // LoRaWAN NwkSKey, network session key
 static u1_t PROGMEM APPSKEY[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }; // LoRaWAN AppSKey, application session key

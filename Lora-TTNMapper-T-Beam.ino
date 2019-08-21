@@ -5,9 +5,6 @@
 // UPDATE the config.h file in the same folder WITH YOUR TTN KEYS AND ADDR.
 #include "config.h"
 #include "gps.h"
-#include "MPU9250.h"
-
-// #define DEBUG 1
 
 #define uS_TO_S_FACTOR 1000000  /* Conversion factor for micro seconds to seconds */
 
@@ -19,14 +16,13 @@
   #define STATCOUNT 2
 #endif
 
-// T-Beam specific hardware
-#define BUILTIN_LED 14
-#define BATTERY_VOLTAGE 35
-
-// MPU Accelerometer for wake on motion
-MPU9250 IMU(Wire,0x68);
-int status;
-#define IMU_WAKEUP_FORCE 100
+#if defined(HAS_IMU) && HAS_IMU == MPU9250
+  // MPU Accelerometer for wake on motion
+  #include "MPU9250.h"
+  MPU9250 IMU(Wire,0x68);
+  int status;
+  #define IMU_WAKEUP_FORCE 50
+#endif
 
 // OTAA (true) or ABP (false)
 #define USE_OTAA true
@@ -120,7 +116,7 @@ void onEvent (ev_t ev) {
       break;
     case EV_TXCOMPLETE:
       Serial.println(F("EV_TXCOMPLETE (includes waiting for RX windows)"));
-            digitalWrite(BUILTIN_LED, LOW);
+      digitalWrite(BUILTIN_LED, LOW);
       if (LMIC.txrxFlags & TXRX_ACK) {
         Serial.println(F("Received Ack"));
       }
@@ -159,7 +155,16 @@ void onEvent (ev_t ev) {
 }
 
 float getBatteryVoltage() {
-  float vBat = analogRead(BATTERY_VOLTAGE) *2 *3.3 /1024;
+  // first read of voltage; this is the least accurate and will be discarded.
+  int current_reading = analogRead(BATTERY_VOLTAGE);
+  int average_reading = 0;
+  // read voltage multiple times and average over all readings
+  for (int i = 0; i < 5; i++) {
+    current_reading = analogRead(BATTERY_VOLTAGE);
+    average_reading += current_reading;
+  }
+  float vBat = average_reading *2 *3.3 / (1024 * 5);
+  
   return vBat;
 }
 
@@ -176,10 +181,10 @@ void do_send(osjob_t *j) {
     if (gps.checkGpsFix())
     {
       dist = TinyGPSPlus::distanceBetween(gps.lat(), gps.lng(), prevLat, prevLon);
-      if (dist > 50 || statCount > STATCOUNT) {
+      if (dist > DISTANCE_MOVED || statCount > STATCOUNT) {
         Serial.println("Distance moved: " + String(dist));
         Serial.println("Time stationary: " + String(statCount * TIME_TO_SLEEP * uS_TO_S_FACTOR));
-        if (dist <= 50) {
+        if (dist <= DISTANCE_MOVED) {
           Serial.println("Sending because stationary for longer than max.");
         }
         statCount = 0;
@@ -195,7 +200,11 @@ void do_send(osjob_t *j) {
       } else {
         Serial.println("Not sending, stationary.");
         Serial.println("Distance moved: " + String(dist));
-        Serial.println("Time stationary: " + String(statCount * TIME_TO_SLEEP * uS_TO_S_FACTOR));
+        #ifndef HAS_IMU
+          Serial.println("Time stationary: " + String(statCount * TIME_TO_SLEEP * uS_TO_S_FACTOR));
+        #else
+          Serial.println("Time stationary: " + String(statCount));
+        #endif
         ++statCount;
         RTC_seqnoUp = LMIC.seqnoUp;
         lowPower();     
@@ -249,18 +258,20 @@ void setup() {
   gps.init();
   gps.softwareReset();
 
-  // start communication with IMU 
-  status = IMU.begin();
-  #ifdef DEBUG
-    if (status < 0) {
-      Serial.println("IMU initialization unsuccessful");
-      Serial.println("Check IMU wiring or try cycling power");
-      Serial.print("Status: ");
-      Serial.println(status);
-      while(1) {}
-    }
-  #endif  
-  IMU.enableWakeOnMotion(IMU_WAKEUP_FORCE,MPU9250::LP_ACCEL_ODR_15_63HZ);
+  #if defined(HAS_IMU) && HAS_IMU == MPU9250
+    // start communication with IMU 
+    status = IMU.begin();
+    #ifdef DEBUG
+      if (status < 0) {
+        Serial.println("IMU initialization unsuccessful");
+        Serial.println("Check IMU wiring or try cycling power");
+        Serial.print("Status: ");
+        Serial.println(status);
+        while(1) {}
+      }
+    #endif  
+    IMU.enableWakeOnMotion(IMU_WAKEUP_FORCE,MPU9250::LP_ACCEL_ODR_15_63HZ);
+  #endif
 
   // Setup ADC to measure battery voltage
   adcAttachPin(BATTERY_VOLTAGE);

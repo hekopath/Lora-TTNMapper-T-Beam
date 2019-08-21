@@ -14,6 +14,8 @@ Arduino IDE [ESP32 extension](https://github.com/espressif/arduino-esp32)
 
 [MCCI LMIC Arduino](https://github.com/mcci-catena/arduino-lmic) This is a hell to configure. You need to edit `~/Arduino/libraries/MCCI_LoRaWAN_LMIC_library/project_config/lmic_project_config.h` and define the “right” band, e.g. `CFG_eu868` (and comment out non-matching others)
 
+[Bolderflight MPU9250](https://github.com/bolderflight/MPU9250) library if you want to wake the device through the MPU9250 IMU
+
 ## Instructions
 
 _If you have an older hardware version:_ You need to connect the [T-Beam](https://github.com/LilyGO/TTGO-T-Beam) DIO1 pin marked *Lora1* to the *pin 33* - So that the ESP32 can read that output from the Lora module.
